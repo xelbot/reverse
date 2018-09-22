@@ -107,7 +107,7 @@ func (us urlStore) Get(urlName string) string {
 // Gets reversed url
 func (us urlStore) Reverse(urlName string, params ...string) (string, error) {
 	if len(params) != len(us.store[urlName].params) {
-		return "", errors.New("Bad Url Reverse: mismatch params for URL: "+ urlName)
+		return "", errors.New("Bad Url Reverse: mismatch params for URL: " + urlName)
 	}
 	res := us.store[urlName].url
 	for i, val := range params {
@@ -130,7 +130,7 @@ func (us urlStore) Rev(urlName string, params ...string) string {
 	return us.MustReverse(urlName, params...)
 }
 
-func (us urlStore) Sting() string {
+func (us urlStore) String() string {
 	return fmt.Sprint(us.store)
 }
 
@@ -138,4 +138,3 @@ func (us urlStore) Sting() string {
 func (us urlStore) getParam(urlName string, num int) string {
 	return us.store[urlName].params[num]
 }
-
