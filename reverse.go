@@ -2,136 +2,122 @@ package reverse
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 )
 
-var Urls *urlStore
-
-func init() {
-	Urls = &urlStore{store: make(map[string]url)}
+type urlStore struct {
+	store map[string]route
 }
 
-func Clear() {
-	for k := range Urls.store {
-		delete(Urls.store, k)
+var (
+	routes urlStore
+
+	RouteAlreadyExist = errors.New("reverse: route already exists")
+	RouteNotFound     = errors.New("reverse: route not found")
+)
+
+func init() {
+	routes = urlStore{
+		store: make(map[string]route),
+	}
+}
+
+// clear routes store for testing
+func clearRoutes() {
+	for k := range routes.store {
+		delete(routes.store, k)
 	}
 }
 
 // Add url to store
-func Add(urlName, urlAddr string, params ...string) string {
-	return Urls.MustAdd(urlName, urlAddr, params...)
+func Add(urlName, urlAddr string) string {
+	return routes.mustAdd(urlName, urlAddr)
 }
 
 // AddGr url with concat group, but returns just urlAddr
-func AddGr(urlName, group, urlAddr string, params ...string) string {
-	return Urls.MustAddGr(urlName, group, urlAddr, params...)
+func AddGr(urlName, group, urlAddr string) string {
+	return routes.mustAddGr(urlName, group, urlAddr)
 }
 
-// Rev url by name
-func Rev(urlName string, params ...string) string {
-	return Urls.MustReverse(urlName, params...)
+// Get url by name
+func Get(urlName string, pairs ...string) (string, error) {
+	return routes.reverse(urlName, pairs...)
 }
 
-// Get raw url by name
-func Get(urlName string) string {
-	return Urls.Get(urlName)
+// MustGet url by name
+func MustGet(urlName string, pairs ...string) string {
+	return routes.mustReverse(urlName, pairs...)
 }
 
 // GetAllURLs saved all urls
 func GetAllURLs() map[string]string {
 	out := map[string]string{}
-	for key, value := range Urls.store {
-		out[key] = value.url
+	for key, value := range routes.store {
+		out[key] = value.pattern
 	}
+
 	return out
 }
 
-// GetAllParams all params
-func GetAllParams() map[string][]string {
-	out := map[string][]string{}
-	for key, value := range Urls.store {
-		out[key] = value.params
-	}
-	return out
+func (us urlStore) add(urlName, urlAddr string) (string, error) {
+	return us.addGr(urlName, "", urlAddr)
 }
 
-type url struct {
-	url    string
-	params []string
-}
-
-type urlStore struct {
-	store map[string]url
-}
-
-// Add a Url to the Store
-func (us *urlStore) Add(urlName, urlAddr string, params ...string) (string, error) {
-	return us.AddGr(urlName, "", urlAddr, params...)
-}
-
-// MustAdd a Url and panics if error
-func (us urlStore) MustAdd(urlName, urlAddr string, params ...string) string {
-	addr, err := us.Add(urlName, urlAddr, params...)
+func (us urlStore) mustAdd(urlName, urlAddr string) string {
+	addr, err := us.add(urlName, urlAddr)
 	if err != nil {
 		panic(err)
 	}
+
 	return addr
 }
 
-// AddGr with group prefix
-func (us *urlStore) AddGr(urlName, group, urlAddr string, params ...string) (string, error) {
+func (us urlStore) addGr(urlName, group, urlAddr string) (string, error) {
 	if _, ok := us.store[urlName]; ok {
-		return "", errors.New("Url already exists. Try to use .Get() method.")
+		return "", RouteAlreadyExist
 	}
 
-	tmpUrl := url{group + urlAddr, params}
+	tmpUrl := route{
+		pattern: group + urlAddr,
+	}
 	us.store[urlName] = tmpUrl
+
 	return urlAddr, nil
 }
 
-// MustAddGr a Url with group prefix
-func (us urlStore) MustAddGr(urlName, group, urlAddr string, params ...string) string {
-	addr, err := us.AddGr(urlName, group, urlAddr, params...)
+func (us urlStore) mustAddGr(urlName, group, urlAddr string) string {
+	addr, err := us.addGr(urlName, group, urlAddr)
 	if err != nil {
 		panic(err)
 	}
+
 	return addr
 }
 
-// Get raw url string
-func (us urlStore) Get(urlName string) string {
-	return us.store[urlName].url
-}
-
-// Reverse url
-func (us urlStore) Reverse(urlName string, params ...string) (string, error) {
-	if len(params) != len(us.store[urlName].params) {
-		return "", errors.New("Bad Url Reverse: mismatch params for URL: " + urlName)
+func (us urlStore) reverse(urlName string, pairs ...string) (string, error) {
+	if _, ok := us.store[urlName]; !ok {
+		return "", RouteNotFound
 	}
-	res := us.store[urlName].url
-	for i, val := range params {
+
+	if len(pairs) != len(us.store[urlName].params) {
+		return "", errors.New("reverse: mismatch params for route: " + urlName)
+	}
+
+	res := us.store[urlName].pattern
+	for i, val := range pairs {
 		res = strings.Replace(res, us.store[urlName].params[i], val, 1)
 	}
+
 	return res, nil
 }
 
-// MustReverse url and panics if error
-func (us urlStore) MustReverse(urlName string, params ...string) string {
-	res, err := us.Reverse(urlName, params...)
+func (us urlStore) mustReverse(urlName string, pairs ...string) string {
+	res, err := us.reverse(urlName, pairs...)
 	if err != nil {
 		panic(err)
 	}
+
 	return res
-}
-
-// Rev url, but returns empty string in case of error
-func (us urlStore) Rev(urlName string, params ...string) string {
-	return us.MustReverse(urlName, params...)
-}
-
-func (us urlStore) String() string {
-	return fmt.Sprint(us.store)
 }
 
 // For testing

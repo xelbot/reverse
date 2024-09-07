@@ -15,7 +15,7 @@ reverse.Add("UrlName", "/url_path/:param1/:param2", ":param1", ":param2")
 reverse.AddGr("UrlName", "/url_path", "/:param1/:param2", ":param1", ":param2")
 // OUT: "/:param1/:param2"
 
-// Note, that these funcs panic if errors. Instead you can use Urls.Add() and Urls.Reverse() 
+// Note, that these funcs panic if errors. Instead, you can use Urls.Add() and Urls.Reverse() 
 // that return errors. Or you can make your own wrapper for them.
 
 // To retrieve a URL by name with given params use:
@@ -82,7 +82,7 @@ package main
 import (
         "fmt"
         "net/http"
-        "github.com/alehano/reverse"
+        "github.com/xelbot/reverse"
         "github.com/zenazn/goji"
         "github.com/zenazn/goji/web"
 )
@@ -99,11 +99,11 @@ func main() {
         // reverse.Add("UrlName", "/url_path/:param1/:param2", ":param1", ":param2")
 
         goji.Get(reverse.Add("HelloUrl", "/hello/:name", ":name"), hello)
-        
+
         // In regexp instead of: re := regexp.MustCompile("^/comment/(?P<id>\\d+)$")
         re := regexp.MustCompile(reverse.Add("DeleteCommentUrl", "^/comment/(?P<id>\\d+)$", "(?P<id>\\d+)$"))
         goji.Delete(re, deleteComment)
-        
+
         goji.Serve()
 }
 ```
@@ -119,7 +119,6 @@ r.HandleFunc(reverse.Add("ArticleCatUrl", "/articles/{category}/{id:[0-9]+}", "{
 fmt.Println( reverse.Rev("ArticleCatUrl", "news", "123") )
 
 ```
-
 
 Example subrouters for [Chi](https://github.com/go-chi/chi) router:
 
