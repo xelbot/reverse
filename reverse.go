@@ -5,11 +5,6 @@ import (
 	"strings"
 )
 
-type route struct {
-	pattern string
-	params  []string
-}
-
 type urlStore struct {
 	store map[string]route
 }
@@ -35,23 +30,23 @@ func clearRoutes() {
 }
 
 // Add url to store
-func Add(urlName, urlAddr string, params ...string) string {
-	return routes.mustAdd(urlName, urlAddr, params...)
+func Add(urlName, urlAddr string) string {
+	return routes.mustAdd(urlName, urlAddr)
 }
 
 // AddGr url with concat group, but returns just urlAddr
-func AddGr(urlName, group, urlAddr string, params ...string) string {
-	return routes.mustAddGr(urlName, group, urlAddr, params...)
+func AddGr(urlName, group, urlAddr string) string {
+	return routes.mustAddGr(urlName, group, urlAddr)
 }
 
 // Get url by name
-func Get(urlName string, params ...string) (string, error) {
-	return routes.reverse(urlName, params...)
+func Get(urlName string, pairs ...string) (string, error) {
+	return routes.reverse(urlName, pairs...)
 }
 
 // MustGet url by name
-func MustGet(urlName string, params ...string) string {
-	return routes.mustReverse(urlName, params...)
+func MustGet(urlName string, pairs ...string) string {
+	return routes.mustReverse(urlName, pairs...)
 }
 
 // GetAllURLs saved all urls
@@ -64,12 +59,12 @@ func GetAllURLs() map[string]string {
 	return out
 }
 
-func (us urlStore) add(urlName, urlAddr string, params ...string) (string, error) {
-	return us.addGr(urlName, "", urlAddr, params...)
+func (us urlStore) add(urlName, urlAddr string) (string, error) {
+	return us.addGr(urlName, "", urlAddr)
 }
 
-func (us urlStore) mustAdd(urlName, urlAddr string, params ...string) string {
-	addr, err := us.add(urlName, urlAddr, params...)
+func (us urlStore) mustAdd(urlName, urlAddr string) string {
+	addr, err := us.add(urlName, urlAddr)
 	if err != nil {
 		panic(err)
 	}
@@ -77,19 +72,21 @@ func (us urlStore) mustAdd(urlName, urlAddr string, params ...string) string {
 	return addr
 }
 
-func (us urlStore) addGr(urlName, group, urlAddr string, params ...string) (string, error) {
+func (us urlStore) addGr(urlName, group, urlAddr string) (string, error) {
 	if _, ok := us.store[urlName]; ok {
 		return "", RouteAlreadyExist
 	}
 
-	tmpUrl := route{group + urlAddr, params}
+	tmpUrl := route{
+		pattern: group + urlAddr,
+	}
 	us.store[urlName] = tmpUrl
 
 	return urlAddr, nil
 }
 
-func (us urlStore) mustAddGr(urlName, group, urlAddr string, params ...string) string {
-	addr, err := us.addGr(urlName, group, urlAddr, params...)
+func (us urlStore) mustAddGr(urlName, group, urlAddr string) string {
+	addr, err := us.addGr(urlName, group, urlAddr)
 	if err != nil {
 		panic(err)
 	}
@@ -97,25 +94,25 @@ func (us urlStore) mustAddGr(urlName, group, urlAddr string, params ...string) s
 	return addr
 }
 
-func (us urlStore) reverse(urlName string, params ...string) (string, error) {
+func (us urlStore) reverse(urlName string, pairs ...string) (string, error) {
 	if _, ok := us.store[urlName]; !ok {
 		return "", RouteNotFound
 	}
 
-	if len(params) != len(us.store[urlName].params) {
+	if len(pairs) != len(us.store[urlName].params) {
 		return "", errors.New("reverse: mismatch params for route: " + urlName)
 	}
 
 	res := us.store[urlName].pattern
-	for i, val := range params {
+	for i, val := range pairs {
 		res = strings.Replace(res, us.store[urlName].params[i], val, 1)
 	}
 
 	return res, nil
 }
 
-func (us urlStore) mustReverse(urlName string, params ...string) string {
-	res, err := us.reverse(urlName, params...)
+func (us urlStore) mustReverse(urlName string, pairs ...string) string {
+	res, err := us.reverse(urlName, pairs...)
 	if err != nil {
 		panic(err)
 	}
