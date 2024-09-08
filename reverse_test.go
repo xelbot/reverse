@@ -1,6 +1,7 @@
 package reverse
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"testing"
@@ -70,5 +71,21 @@ func TestAdd(t *testing.T) {
 				t.Errorf("%s : got %s; want %s", item.name, result, item.pattern)
 			}
 		})
+	}
+}
+
+func TestAddDuplicate(t *testing.T) {
+	clearRoutes()
+
+	Add("first", "/first")
+	Add("second", "/second")
+
+	_, err := routes.add("first", "/first-second")
+	if err == nil {
+		t.Error("an error was expected")
+	} else {
+		if !errors.Is(err, RouteAlreadyExist) {
+			t.Error("another error was expected")
+		}
 	}
 }
