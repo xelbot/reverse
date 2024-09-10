@@ -25,6 +25,8 @@ func (r *route) url(pairs ...string) (string, error) {
 	for _, param := range r.params {
 		if value, found := dict[param.name]; found {
 			url = strings.Replace(url, param.placeholder, value, 1)
+		} else {
+			return "", MismatchParams
 		}
 	}
 

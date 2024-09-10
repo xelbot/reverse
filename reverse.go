@@ -13,6 +13,7 @@ var (
 
 	RouteAlreadyExist = errors.New("reverse: route already exists")
 	RouteNotFound     = errors.New("reverse: route not found")
+	MismatchParams    = errors.New("reverse: mismatch params for route")
 )
 
 func init() {
@@ -97,15 +98,6 @@ func (us urlStore) reverse(routeName string, pairs ...string) (string, error) {
 		return "", RouteNotFound
 	}
 
-	/* if len(pairs) != len(us.store[routeName].params) {
-		return "", errors.New("reverse: mismatch params for route: " + routeName)
-	}
-
-	res := us.store[routeName].pattern
-	for i, val := range pairs {
-		res = strings.Replace(res, us.store[routeName].params[i], val, 1)
-	} */
-
 	return r.url(pairs...)
 }
 
@@ -116,9 +108,4 @@ func (us urlStore) mustReverse(routeName string, pairs ...string) string {
 	}
 
 	return res
-}
-
-// For testing
-func (us urlStore) getParam(routeName string, num int) parameter {
-	return us.store[routeName].params[num]
 }

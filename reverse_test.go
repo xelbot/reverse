@@ -148,3 +148,18 @@ func TestInvalidNumberParams(t *testing.T) {
 		}
 	}
 }
+
+func TestMismatchParams(t *testing.T) {
+	clearRoutes()
+
+	Add("photos", "/photos/{year}/{month}")
+
+	_, err := Get("photos", "year", "2019")
+	if err == nil {
+		t.Error("an error was expected")
+	} else {
+		if !errors.Is(err, MismatchParams) {
+			t.Error("another error was expected")
+		}
+	}
+}
