@@ -2,7 +2,6 @@ package reverse
 
 import (
 	"errors"
-	"strings"
 )
 
 type urlStore struct {
@@ -30,23 +29,23 @@ func clearRoutes() {
 }
 
 // Add url to store
-func Add(urlName, urlAddr string) string {
-	return routes.mustAdd(urlName, urlAddr)
+func Add(routeName, pattern string) string {
+	return routes.mustAdd(routeName, pattern)
 }
 
-// AddGr url with concat group, but returns just urlAddr
-func AddGr(urlName, group, urlAddr string) string {
-	return routes.mustAddGr(urlName, group, urlAddr)
+// AddGr url with concat group, but returns just pattern
+func AddGr(routeName, group, pattern string) string {
+	return routes.mustAddGr(routeName, group, pattern)
 }
 
 // Get url by name
-func Get(urlName string, pairs ...string) (string, error) {
-	return routes.reverse(urlName, pairs...)
+func Get(routeName string, pairs ...string) (string, error) {
+	return routes.reverse(routeName, pairs...)
 }
 
 // MustGet url by name
-func MustGet(urlName string, pairs ...string) string {
-	return routes.mustReverse(urlName, pairs...)
+func MustGet(routeName string, pairs ...string) string {
+	return routes.mustReverse(routeName, pairs...)
 }
 
 // GetAllURLs saved all urls
@@ -59,34 +58,18 @@ func GetAllURLs() map[string]string {
 	return out
 }
 
-func (us urlStore) add(urlName, urlAddr string) (string, error) {
-	return us.addGr(urlName, "", urlAddr)
-}
-
-func (us urlStore) mustAdd(urlName, urlAddr string) string {
-	addr, err := us.add(urlName, urlAddr)
-	if err != nil {
-		panic(err)
-	}
-
-	return addr
-}
-
-func (us urlStore) addGr(urlName, group, urlAddr string) (string, error) {
-	if _, ok := us.store[urlName]; ok {
+func (us urlStore) add(routeName, pattern string) (string, error) {
+	if _, ok := us.store[routeName]; ok {
 		return "", RouteAlreadyExist
 	}
 
-	tmpUrl := route{
-		pattern: group + urlAddr,
-	}
-	us.store[urlName] = tmpUrl
+	us.store[routeName] = createRoute(pattern)
 
-	return urlAddr, nil
+	return pattern, nil
 }
 
-func (us urlStore) mustAddGr(urlName, group, urlAddr string) string {
-	addr, err := us.addGr(urlName, group, urlAddr)
+func (us urlStore) mustAdd(routeName, pattern string) string {
+	addr, err := us.add(routeName, pattern)
 	if err != nil {
 		panic(err)
 	}
@@ -94,25 +77,40 @@ func (us urlStore) mustAddGr(urlName, group, urlAddr string) string {
 	return addr
 }
 
-func (us urlStore) reverse(urlName string, pairs ...string) (string, error) {
-	if _, ok := us.store[urlName]; !ok {
+func (us urlStore) addGr(routeName, groupName, pattern string) (string, error) {
+	return us.add(routeName, pattern)
+}
+
+func (us urlStore) mustAddGr(routeName, groupName, pattern string) string {
+	addr, err := us.addGr(routeName, groupName, pattern)
+	if err != nil {
+		panic(err)
+	}
+
+	return addr
+}
+
+func (us urlStore) reverse(routeName string, pairs ...string) (string, error) {
+	var r route
+	var ok bool
+	if r, ok = us.store[routeName]; !ok {
 		return "", RouteNotFound
 	}
 
-	if len(pairs) != len(us.store[urlName].params) {
-		return "", errors.New("reverse: mismatch params for route: " + urlName)
+	/* if len(pairs) != len(us.store[routeName].params) {
+		return "", errors.New("reverse: mismatch params for route: " + routeName)
 	}
 
-	res := us.store[urlName].pattern
+	res := us.store[routeName].pattern
 	for i, val := range pairs {
-		res = strings.Replace(res, us.store[urlName].params[i], val, 1)
-	}
+		res = strings.Replace(res, us.store[routeName].params[i], val, 1)
+	} */
 
-	return res, nil
+	return r.url(pairs...)
 }
 
-func (us urlStore) mustReverse(urlName string, pairs ...string) string {
-	res, err := us.reverse(urlName, pairs...)
+func (us urlStore) mustReverse(routeName string, pairs ...string) string {
+	res, err := us.reverse(routeName, pairs...)
 	if err != nil {
 		panic(err)
 	}
@@ -121,6 +119,6 @@ func (us urlStore) mustReverse(urlName string, pairs ...string) string {
 }
 
 // For testing
-func (us urlStore) getParam(urlName string, num int) string {
-	return us.store[urlName].params[num]
+func (us urlStore) getParam(routeName string, num int) parameter {
+	return us.store[routeName].params[num]
 }

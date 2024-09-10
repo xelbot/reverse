@@ -2,49 +2,10 @@ package reverse
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 )
-
-func TestOldReverse(t *testing.T) {
-	showError := func(info string) {
-		t.Error(fmt.Sprintf("Error: %s. urlStore: %s", info, routes))
-	}
-
-	if routes.mustAdd("firstUrl", "/first") != "/first" {
-		showError("0")
-	}
-
-	if routes.mustAdd("helloUrl", "/hello/:p1:p2") != "/hello/:p1:p2" {
-		showError("0-1")
-	}
-
-	/* routes.mustAdd("secondUrl", "/second/:param/:param2")
-
-	routes.mustAdd("thirdUrl", "/comment/:p1")
-
-	if routes.getParam("helloUrl", 1) != "2" {
-		showError("1")
-	}
-
-	if routes.getParam("secondUrl", 0) != ":param" {
-		showError("3")
-	}
-
-	if routes.mustReverse("firstUrl") != "/first" {
-		showError("4")
-	}
-
-	if routes.mustReverse("secondUrl", "123", "ABC") != "/second/123/ABC" {
-		showError("5")
-	}
-
-	if routes.mustReverse("thirdUrl", "123") != "/comment/123" {
-		t.Error(routes.reverse("thirdUrl", "123"))
-		showError("6")
-	} */
-}
 
 func TestAdd(t *testing.T) {
 	clearRoutes()
@@ -85,6 +46,104 @@ func TestAddDuplicate(t *testing.T) {
 		t.Error("an error was expected")
 	} else {
 		if !errors.Is(err, RouteAlreadyExist) {
+			t.Error("another error was expected")
+		}
+	}
+}
+
+func TestSimpleURLGeneration(t *testing.T) {
+	clearRoutes()
+
+	Add("first", "/first")
+
+	url, err := Get("first")
+	if err != nil {
+		t.Errorf("an error occured: %s", err.Error())
+
+		return
+	}
+
+	if url != "/first" {
+		t.Errorf("got %s; want /first", url)
+	}
+}
+
+func TestNotExistURLGeneration(t *testing.T) {
+	clearRoutes()
+
+	Add("first", "/first")
+
+	_, err := Get("second")
+	if err == nil {
+		t.Error("an error was expected")
+	} else {
+		if !errors.Is(err, RouteNotFound) {
+			t.Error("another error was expected")
+		}
+	}
+}
+
+func TestURLGenerationWithParams(t *testing.T) {
+	clearRoutes()
+
+	cases := []struct {
+		name    string
+		pattern string
+		pairs   []string
+		want    string
+	}{
+		{
+			name:    "article",
+			pattern: "/article/{slug}",
+			pairs:   []string{"slug", "test"},
+			want:    "/article/test",
+		},
+		{
+			name:    "avatar",
+			pattern: "/avatar/{hash:[0-9A-Z]+}",
+			pairs:   []string{"hash", "123ABC", "quality", "95"},
+			want:    "/avatar/123ABC?quality=95",
+		},
+		{
+			name:    "articles",
+			pattern: "/articles/{month}-{day}-{year}",
+			pairs:   []string{"day", "09", "year", "2024", "month", "05"},
+			want:    "/articles/05-09-2024",
+		},
+		{
+			name:    "books",
+			pattern: "/books/{rid:^[0-9]{5,6}}",
+			pairs:   []string{"rid", "20200109-this-is-so-cool"},
+			want:    "/books/20200109-this-is-so-cool",
+		},
+	}
+
+	for _, item := range cases {
+		Add(item.name, item.pattern)
+	}
+
+	for _, item := range cases {
+		url, err := Get(item.name, item.pairs...)
+		if err != nil {
+			t.Errorf("an error occured: %s", err.Error())
+		}
+
+		if url != item.want {
+			t.Errorf("got %s; want %s", url, item.want)
+		}
+	}
+}
+
+func TestInvalidNumberParams(t *testing.T) {
+	clearRoutes()
+
+	Add("first", "/first")
+
+	_, err := Get("first", "A", "B", "C")
+	if err == nil {
+		t.Error("an error was expected")
+	} else {
+		if !strings.Contains(err.Error(), "the number of parameters must be even") {
 			t.Error("another error was expected")
 		}
 	}
