@@ -5,7 +5,8 @@ import (
 )
 
 type urlStore struct {
-	store map[string]route
+	store  map[string]route
+	groups map[string]string
 }
 
 var (
@@ -14,11 +15,15 @@ var (
 	RouteAlreadyExist = errors.New("reverse: route already exists")
 	RouteNotFound     = errors.New("reverse: route not found")
 	MismatchParams    = errors.New("reverse: mismatch params for route")
+
+	GroupAlreadyExist = errors.New("reverse: group already exists")
+	GroupNotFound     = errors.New("reverse: group not found")
 )
 
 func init() {
 	routes = urlStore{
-		store: make(map[string]route),
+		store:  make(map[string]route),
+		groups: make(map[string]string),
 	}
 }
 
@@ -27,6 +32,9 @@ func clearRoutes() {
 	for k := range routes.store {
 		delete(routes.store, k)
 	}
+	for k := range routes.groups {
+		delete(routes.groups, k)
+	}
 }
 
 // Add url to store
@@ -34,9 +42,14 @@ func Add(routeName, pattern string) string {
 	return routes.mustAdd(routeName, pattern)
 }
 
-// AddGr url with concat group, but returns just pattern
-func AddGr(routeName, group, pattern string) string {
-	return routes.mustAddGr(routeName, group, pattern)
+// AddGr url with group, but returns just pattern
+func AddGr(routeName, groupName, pattern string) string {
+	return routes.mustAddGr(routeName, groupName, pattern)
+}
+
+// Group add group prefix to store
+func Group(groupName, pattern string) string {
+	return routes.mustGroup(groupName, pattern)
 }
 
 // Get url by name
@@ -79,7 +92,19 @@ func (us urlStore) mustAdd(routeName, pattern string) string {
 }
 
 func (us urlStore) addGr(routeName, groupName, pattern string) (string, error) {
-	return us.add(routeName, pattern)
+	var prefix string
+	var ok bool
+
+	if prefix, ok = us.groups[groupName]; !ok {
+		return "", GroupNotFound
+	}
+
+	_, err := us.add(routeName, prefix+pattern)
+	if err != nil {
+		return "", err
+	}
+
+	return pattern, nil
 }
 
 func (us urlStore) mustAddGr(routeName, groupName, pattern string) string {
@@ -89,6 +114,25 @@ func (us urlStore) mustAddGr(routeName, groupName, pattern string) string {
 	}
 
 	return addr
+}
+
+func (us urlStore) group(groupName, pattern string) (string, error) {
+	if _, ok := us.groups[groupName]; ok {
+		return "", GroupAlreadyExist
+	}
+
+	us.groups[groupName] = pattern
+
+	return pattern, nil
+}
+
+func (us urlStore) mustGroup(groupName, pattern string) string {
+	prefix, err := us.group(groupName, pattern)
+	if err != nil {
+		panic(err)
+	}
+
+	return prefix
 }
 
 func (us urlStore) reverse(routeName string, pairs ...string) (string, error) {

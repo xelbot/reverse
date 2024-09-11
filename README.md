@@ -12,7 +12,8 @@ reverse.Add("UrlName", "/url_path/:param1/:param2")
 // OUT: "/url_path/:param1/:param2"
 
 // To set a URL with group (subrouter) prefix and return URL without prefix use:
-reverse.AddGr("UrlName", "GroupName", "/:param1/:param2", ":param1", ":param2")
+reverse.Group("GroupName", "/prefix")
+reverse.AddGr("UrlName", "GroupName", "/:param1/:param2")
 // OUT: "/:param1/:param2"
 
 // Note, that these funcs panic if errors.
@@ -30,7 +31,7 @@ Example for Gin router (https://github.com/gin-gonic/gin):
 ```go
 func main() {
     router := gin.Default()
-    
+
     // URL: "/"
     // To fetch the url use: reverse.Get("home")
     router.GET(reverse.Add("home", "/"), indexEndpoint)
@@ -41,8 +42,8 @@ func main() {
     router.GET(reverse.Add("get_url", "/get/:id"), getUrlEndpoint)
 
     // Simple group: v1 (each URL starts with /v1 prefix)
-    groupName := "/v1"
-    v1 := router.Group(groupName)
+    groupName := "v1"
+    v1 := router.Group(reverse.Group(groupName, "/v1"))
     {
         // URL: "/v1"
         // To fetch the URL use: reverse.Get("v1_root")
@@ -51,7 +52,7 @@ func main() {
         // URL: "v1/read/cat123/id456"
         // With params (c.Param): catId, articleId
         // To fetch the URL use: reverse.Get("v1_read", "123", "456")
-        v1.GET(reverse.AddGr("v1_read", groupName, "/read/cat:catId/id:articleId", ":catId", ":articleId"), readEndpoint)
+        v1.GET(reverse.AddGr("v1_read", groupName, "/read/cat:catId/id:articleId"), readEndpoint)
 
         // URL: /v1/login
         // To fetch the URL use: reverse.Get("v1_login")
@@ -119,10 +120,10 @@ r.Route("/articles", func(r chi.Router) {
 })
 
 // With reverse package
-r.Route("/articles", func(r chi.Router) {
-	r.Get(reverse.AddGr("list_articles", "/articles", "/"), listArticles)
-	r.Route("/{articleID}", func(r chi.Router) {
-		r.Get(reverse.AddGr("get_article", "/articles/{articleID}", "/", "{articleID}"), getArticle)
+r.Route(reverse.Group("articles", "/articles"), func(r chi.Router) {
+	r.Get(reverse.AddGr("list_articles", "articles", "/"), listArticles)
+	r.Route(reverse.Group("article", "/articles/{articleID}"), func(r chi.Router) {
+		r.Get(reverse.AddGr("articles", "article", "/"), getArticle)
 	})
 })
 
@@ -131,11 +132,11 @@ reverse.Get("get_article", "articleID", "123")
 // Output: /articles/123/
 
 // One more example (without tailing slashes)
-r.Route(reverse.Add("admin.index", "/admin"), func(r chi.Router) {
-	r.Get("/", index)
+r.Route(reverse.Group("admin", "/admin"), func(r chi.Router) {
+	r.Get(reverse.AddGr("admin.index", "admin", "/"), index)
 
-	r.Route(reverse.AddGr("admin.login", "/admin", "/login"), func(r chi.Router) {
-		r.Get("/", login)
+	r.Route(reverse.Group("admin.login", "/admin/login"), func(r chi.Router) {
+		r.Get(reverse.AddGr("admin.login", "admin.login", "/"), login)
 		r.Post("/", loginPost)
 	})
 })

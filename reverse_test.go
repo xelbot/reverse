@@ -169,3 +169,49 @@ func TestMismatchParams(t *testing.T) {
 		}
 	}
 }
+
+func TestGroups(t *testing.T) {
+	clearRoutes()
+
+	Group("users", "/user/{id}")
+	AddGr("user-edit", "users", "/edit")
+
+	url, err := Get("user-edit", "id", "13")
+	if err != nil {
+		t.Errorf("an error occured: %s", err.Error())
+	}
+
+	if url != "/user/13/edit" {
+		t.Errorf("got %s; want %s", url, "/user/13/edit")
+	}
+}
+
+func TestDuplicateGroup(t *testing.T) {
+	clearRoutes()
+
+	Group("users", "/users")
+
+	_, err := routes.group("users", "/users-1")
+	if err == nil {
+		t.Error("an error was expected")
+	} else {
+		if !errors.Is(err, GroupAlreadyExist) {
+			t.Error("another error was expected")
+		}
+	}
+}
+
+func TestNotExisGroups(t *testing.T) {
+	clearRoutes()
+
+	Group("users", "/user/{id}")
+
+	_, err := routes.addGr("articles-list", "articles", "/articles")
+	if err == nil {
+		t.Error("an error was expected")
+	} else {
+		if !errors.Is(err, GroupNotFound) {
+			t.Error("another error was expected")
+		}
+	}
+}
