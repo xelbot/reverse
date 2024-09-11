@@ -116,6 +116,12 @@ func TestURLGenerationWithParams(t *testing.T) {
 			pairs:   []string{"rid", "20200109-this-is-so-cool"},
 			want:    "/books/20200109-this-is-so-cool",
 		},
+		{
+			name:    "test-query",
+			pattern: "/query",
+			pairs:   []string{"a[1]", "1", "a[2]", "A B+C", "z", "123", "foo", "bar"},
+			want:    "/query?a%5B1%5D=1&a%5B2%5D=A+B%2BC&foo=bar&z=123",
+		},
 	}
 
 	for _, item := range cases {

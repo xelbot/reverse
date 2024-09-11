@@ -2,6 +2,8 @@ package reverse
 
 import (
 	"fmt"
+	"net/url"
+	"sort"
 	"strings"
 )
 
@@ -21,16 +23,30 @@ func (r *route) url(pairs ...string) (string, error) {
 		return "", err
 	}
 
-	url := r.pattern
+	used := make(map[string]bool)
+	urlString := r.pattern
 	for _, param := range r.params {
 		if value, found := dict[param.name]; found {
-			url = strings.Replace(url, param.placeholder, value, 1)
+			urlString = strings.Replace(urlString, param.placeholder, url.PathEscape(value), 1)
+			used[param.name] = true
 		} else {
 			return "", MismatchParams
 		}
 	}
 
-	return url, nil
+	rawQuery := make([]string, 0, len(dict))
+	for name, value := range dict {
+		if _, found := used[name]; !found {
+			rawQuery = append(rawQuery, url.QueryEscape(name)+"="+url.QueryEscape(value))
+		}
+	}
+
+	if len(rawQuery) > 0 {
+		sort.Strings(rawQuery)
+		urlString += "?" + strings.Join(rawQuery, "&")
+	}
+
+	return urlString, nil
 }
 
 func createRoute(pattern string) route {
